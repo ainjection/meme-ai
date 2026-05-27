@@ -86,7 +86,7 @@ function GenerateForm() {
       const pollRes = await fetch(`/api/poll/${generationId}`);
       const result = await pollRes.json();
       if (result.status === "completed") { setOutputUrl(result.outputUrl); setStatus("done"); }
-      else if (result.status === "failed") { setError("Generation failed."); setStatus("error"); }
+      else if (result.status === "failed") { setError(result.error || "Generation failed."); setStatus("error"); }
       else setTimeout(poll, 3000);
     };
     poll();

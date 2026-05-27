@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     if (prediction.status === 'failed' || prediction.status === 'canceled') {
-      return NextResponse.json({ status: 'failed' })
+      return NextResponse.json({ status: 'failed', error: (prediction as any).error ?? prediction.status })
     }
 
     return NextResponse.json({ status: 'processing' })
