@@ -3,11 +3,43 @@ import { useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
+function WindowCard({ number, label, badge, children, bottomLabel, highlight }: {
+  number: string; label: string; badge?: string; children: React.ReactNode;
+  bottomLabel: string; highlight?: boolean;
+}) {
+  return (
+    <div className={`flex flex-col border-2 ${highlight ? "border-[#D42B2B]" : "border-[#1A1A1A]"} bg-[#F5F1E8]`}>
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-3 py-2 bg-[#1A1A1A]">
+        <div className="flex items-center gap-2">
+          <span className="text-white font-black text-sm">{number}</span>
+          <span className="text-white font-bold text-xs tracking-widest uppercase">{label}</span>
+          {badge && <span className="bg-[#1A1A1A] border border-gray-600 text-gray-400 text-[10px] font-bold px-1.5 py-0.5 tracking-wider">{badge}</span>}
+        </div>
+        <div className="flex gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-red-500"></span>
+          <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+          <span className="w-3 h-3 rounded-full bg-green-500"></span>
+        </div>
+      </div>
+      {/* Content */}
+      <div className="flex-1 min-h-[280px] flex items-center justify-center">
+        {children}
+      </div>
+      {/* Footer label */}
+      <div className="px-3 py-2 border-t-2 border-[#1A1A1A] bg-[#1A1A1A]">
+        <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">{bottomLabel}</span>
+      </div>
+    </div>
+  );
+}
+
 function GenerateForm() {
   const params = useSearchParams();
   const router = useRouter();
   const memeUrl = params.get("meme") ? decodeURIComponent(params.get("meme")!) : "";
-  const memeTitle = params.get("title") ? decodeURIComponent(params.get("title")!) : "Selected meme";
+  const memeTitle = params.get("title") ? decodeURIComponent(params.get("title")!) : "";
+  const isVideo = memeUrl.includes(".gif") || memeUrl.includes("giphy");
 
   const [swapType, setSwapType] = useState<"face" | "body">("face");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -28,15 +60,12 @@ function GenerateForm() {
     if (!photo || !memeUrl) return;
     setStatus("uploading");
     setError("");
-
-    // Upload photo
     const form = new FormData();
     form.append("file", photo);
     const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
     if (!uploadRes.ok) { setError("Photo upload failed"); setStatus("error"); return; }
     const { url: photoUrl } = await uploadRes.json();
 
-    // Start generation
     setStatus("generating");
     const genRes = await fetch("/api/generate", {
       method: "POST",
@@ -46,15 +75,14 @@ function GenerateForm() {
     if (!genRes.ok) { const e = await genRes.json(); setError(e.error || "Generation failed"); setStatus("error"); return; }
     const { generationId } = await genRes.json();
 
-    // Poll for result
     setStatus("polling");
     let attempts = 0;
     const poll = async () => {
-      if (attempts++ > 60) { setError("Timed out. Please try again."); setStatus("error"); return; }
+      if (attempts++ > 60) { setError("Timed out."); setStatus("error"); return; }
       const pollRes = await fetch(`/api/poll/${generationId}`);
       const result = await pollRes.json();
       if (result.status === "completed") { setOutputUrl(result.outputUrl); setStatus("done"); }
-      else if (result.status === "failed") { setError("Generation failed. Please try again."); setStatus("error"); }
+      else if (result.status === "failed") { setError("Generation failed."); setStatus("error"); }
       else setTimeout(poll, 3000);
     };
     poll();
@@ -62,108 +90,150 @@ function GenerateForm() {
 
   const isLoading = ["uploading", "generating", "polling"].includes(status);
 
+  const statusText = () => {
+    if (status === "idle") return photo && memeUrl ? "Ready to generate." : "Select a meme and upload your photo.";
+    if (status === "uploading") return "Uploading photo...";
+    if (status === "generating") return "Starting AI model...";
+    if (status === "polling") return "Generating... (~30–60s)";
+    if (status === "done") return "Done. Try another?";
+    if (status === "error") return `Error: ${error}`;
+    return "";
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-        <Link href="/dashboard" className="text-xl font-bold">Meme<span className="text-purple-400">AI</span></Link>
-        <Link href="/dashboard" className="text-gray-400 hover:text-white text-sm">← Back to memes</Link>
+    <div className="min-h-screen bg-[#EEEAE2]">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-3 border-b-2 border-[#1A1A1A] bg-[#EEEAE2]">
+        <Link href="/dashboard" className="font-black text-xl tracking-tight">MEME<span className="text-[#D42B2B]">AI</span></Link>
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-xs font-bold tracking-widest uppercase text-[#7A7060] hover:text-[#1A1A1A]">← Browse</Link>
+          <Link href="/my-memes" className="text-xs font-bold tracking-widest uppercase text-[#7A7060] hover:text-[#1A1A1A]">My Memes</Link>
+        </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
-        <h1 className="text-2xl font-bold mb-8">Create your meme</h1>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Left: meme preview + options */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-sm text-gray-400 uppercase tracking-wider mb-3">Selected meme</h2>
-              {memeUrl ? (
-                <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                  <img src={memeUrl} alt={memeTitle} className="w-full" />
-                  <p className="text-xs text-gray-500 p-3 truncate">{memeTitle}</p>
+      <div className="p-6 max-w-6xl mx-auto">
+        {/* 3-panel grid */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {/* Panel 1: Meme */}
+          <WindowCard number="1" label="MEME" badge={isVideo ? "GIF" : "IMG"}
+            bottomLabel={memeUrl ? "ANIMATED" : "NO MEME SELECTED"}>
+            {memeUrl ? (
+              <div className="w-full h-full relative group cursor-pointer" onClick={() => router.push("/dashboard")}>
+                <img src={memeUrl} alt="Selected meme" className="w-full h-64 object-cover" />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="text-white font-bold text-xs tracking-widest uppercase">CHANGE MEME</span>
                 </div>
-              ) : (
-                <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-                  <p className="text-gray-500 text-sm">No meme selected.</p>
-                  <Link href="/dashboard" className="text-purple-400 text-sm">← Pick one</Link>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h2 className="text-sm text-gray-400 uppercase tracking-wider mb-3">Swap type</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {(["face", "body"] as const).map(type => (
-                  <button key={type} onClick={() => setSwapType(type)}
-                    className={`p-4 rounded-xl border text-left transition-colors ${swapType === type ? "border-purple-500 bg-purple-900/20" : "border-gray-700 bg-gray-900 hover:border-gray-600"}`}>
-                    <div className="font-semibold capitalize mb-1">{type} swap</div>
-                    <div className="text-xs text-gray-400">{type === "face" ? "Keeps hair & outfit, swaps only the face" : "Replaces the entire person with you"}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: upload + generate */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-sm text-gray-400 uppercase tracking-wider mb-3">Your photo</h2>
-              <button onClick={() => fileRef.current?.click()}
-                className="w-full bg-gray-900 border-2 border-dashed border-gray-700 hover:border-purple-500 rounded-xl p-8 text-center transition-colors">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="Your photo" className="w-32 h-32 object-cover rounded-full mx-auto" />
-                ) : (
-                  <>
-                    <div className="text-4xl mb-3">📸</div>
-                    <p className="text-gray-400 text-sm">Click to upload your photo</p>
-                    <p className="text-gray-600 text-xs mt-1">JPG, PNG up to 10MB</p>
-                  </>
-                )}
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-              {photoPreview && (
-                <button onClick={() => fileRef.current?.click()} className="text-purple-400 text-xs mt-2">Change photo</button>
-              )}
-            </div>
-
-            {error && (
-              <div className="bg-red-900/30 border border-red-700/50 text-red-300 text-sm px-4 py-3 rounded-lg">{error}</div>
-            )}
-
-            {status === "done" && outputUrl ? (
-              <div className="space-y-4">
-                <div className="bg-gray-900 border border-green-700/50 rounded-xl overflow-hidden">
-                  {outputUrl.endsWith(".mp4") || outputUrl.includes("video") ? (
-                    <video src={outputUrl} controls className="w-full rounded-xl" />
-                  ) : (
-                    <img src={outputUrl} alt="Your meme" className="w-full rounded-xl" />
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <a href={outputUrl} download className="flex-1 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl text-center transition-colors text-sm">
-                    ↓ Download
-                  </a>
-                  <Link href="/my-memes" className="flex-1 border border-gray-700 hover:border-gray-500 text-gray-300 font-semibold py-3 rounded-xl text-center transition-colors text-sm">
-                    View all memes
-                  </Link>
-                </div>
-                <button onClick={() => { setStatus("idle"); setOutputUrl(""); }}
-                  className="w-full text-purple-400 text-sm hover:text-purple-300">Create another</button>
               </div>
             ) : (
-              <button onClick={handleGenerate} disabled={!photo || !memeUrl || isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl text-lg transition-colors">
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    {status === "uploading" ? "Uploading photo..." : status === "generating" ? "Starting AI..." : "Generating (~30s)..."}
-                  </span>
-                ) : "Generate meme →"}
-              </button>
+              <Link href="/dashboard" className="flex flex-col items-center gap-2 text-[#7A7060] hover:text-[#1A1A1A]">
+                <span className="text-4xl">🎬</span>
+                <span className="text-xs font-bold tracking-widest uppercase">Pick a meme</span>
+              </Link>
             )}
+          </WindowCard>
+
+          {/* Panel 2: Your Photo */}
+          <WindowCard number="2" label="YOUR PHOTO"
+            bottomLabel={photo ? "PHOTO LOADED" : "UPLOAD A CLEAR SELFIE"}>
+            <button onClick={() => fileRef.current?.click()}
+              className="w-full h-full flex items-center justify-center group cursor-pointer">
+              {photoPreview ? (
+                <div className="relative w-full">
+                  <img src={photoPreview} alt="Your photo" className="w-full h-64 object-cover" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="text-white font-bold text-xs tracking-widest uppercase">CHANGE PHOTO</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-[#7A7060] group-hover:text-[#1A1A1A]">
+                  <span className="text-4xl">📸</span>
+                  <span className="text-xs font-bold tracking-widest uppercase">Upload photo</span>
+                  <span className="text-[10px] text-[#7A7060]">JPG or PNG, clear face</span>
+                </div>
+              )}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          </WindowCard>
+
+          {/* Panel 3: Result */}
+          <WindowCard number="3" label="RESULT" badge={status === "done" ? "READY" : undefined}
+            bottomLabel={status === "done" ? "VIDEO READY" : status === "polling" ? "PROCESSING..." : "RESULT APPEARS HERE"}
+            highlight={status === "done"}>
+            {status === "done" && outputUrl ? (
+              outputUrl.includes(".mp4") || outputUrl.includes("video") ? (
+                <video src={outputUrl} autoPlay loop muted className="w-full h-64 object-cover" />
+              ) : (
+                <img src={outputUrl} alt="Result" className="w-full h-64 object-cover" />
+              )
+            ) : isLoading ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-[#1A1A1A] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs font-bold tracking-widest uppercase text-[#7A7060]">
+                  {status === "uploading" ? "UPLOADING" : status === "generating" ? "STARTING" : "GENERATING"}
+                </span>
+              </div>
+            ) : (
+              <div className="text-[#7A7060] text-xs font-bold tracking-widest uppercase">AWAITING GENERATION</div>
+            )}
+          </WindowCard>
+        </div>
+
+        {/* Swap type selector */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-black tracking-[0.3em] uppercase">SWAP TYPE</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-[#7A7060]">PICK ONE</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Face Only */}
+            <button onClick={() => setSwapType("face")}
+              className={`text-left p-5 border-2 transition-colors ${swapType === "face" ? "border-[#1A1A1A] bg-[#F5F1E8]" : "border-[#C5C0B8] bg-[#EEEAE2] hover:border-[#1A1A1A]"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`w-3 h-3 border-2 ${swapType === "face" ? "bg-[#1A1A1A] border-[#1A1A1A]" : "bg-transparent border-[#7A7060]"}`}></span>
+                <span className="font-black text-xl uppercase tracking-tight">FACE ONLY</span>
+              </div>
+              <p className="text-sm text-[#7A7060] italic mb-3">Swaps just the face. Body and clothes stay the same.</p>
+              <div className="flex gap-3 text-[10px] font-bold tracking-widest uppercase text-[#7A7060]">
+                <span>~60–120S</span><span>·</span><span>STANDARD</span><span>·</span><span>FRAME BY FRAME</span>
+              </div>
+            </button>
+
+            {/* Full Body */}
+            <button onClick={() => setSwapType("body")}
+              className={`text-left p-5 border-2 relative transition-colors ${swapType === "body" ? "border-[#D42B2B] bg-[#F5F1E8]" : "border-[#C5C0B8] bg-[#EEEAE2] hover:border-[#D42B2B]"}`}>
+              <div className="absolute top-3 right-3 bg-[#D4F233] text-[#1A1A1A] text-[10px] font-black px-2 py-0.5 tracking-widest uppercase">PREMIUM</div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`w-3 h-3 border-2 ${swapType === "body" ? "bg-[#D42B2B] border-[#D42B2B]" : "bg-transparent border-[#7A7060]"}`}></span>
+                <span className="font-black text-xl uppercase tracking-tight">FULL BODY</span>
+              </div>
+              <p className="text-sm text-[#7A7060] italic mb-3">Replaces the whole character. You become the meme.</p>
+              <div className="flex gap-3 text-[10px] font-bold tracking-widest uppercase text-[#7A7060]">
+                <span>~2–4 MIN</span><span>·</span><span>PREMIUM</span><span>·</span><span>WAN-VIDEO 2.1</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center justify-between border-2 border-[#1A1A1A] bg-[#F5F1E8] px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black tracking-[0.3em] uppercase text-[#D42B2B]">STATUS</span>
+            <span className="text-sm font-bold italic">{statusText()}</span>
+          </div>
+          <div className="flex gap-3">
+            {status === "done" && outputUrl && (
+              <a href={outputUrl} download
+                className="border-2 border-[#1A1A1A] px-5 py-2 text-xs font-black tracking-widest uppercase hover:bg-[#1A1A1A] hover:text-white transition-colors">
+                OPEN FULL SIZE ↗
+              </a>
+            )}
+            <button onClick={status === "done" ? () => { setStatus("idle"); setOutputUrl(""); } : handleGenerate}
+              disabled={isLoading || (!photo && status !== "done") || (!memeUrl && status !== "done")}
+              className="bg-[#1A1A1A] disabled:opacity-40 text-white px-6 py-2 text-xs font-black tracking-widest uppercase hover:bg-[#D42B2B] disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+              {isLoading ? (
+                <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>WORKING</>
+              ) : status === "done" ? "GENERATE AGAIN →" : "GENERATE →"}
+            </button>
           </div>
         </div>
       </div>
@@ -172,9 +242,5 @@ function GenerateForm() {
 }
 
 export default function GeneratePage() {
-  return (
-    <Suspense>
-      <GenerateForm />
-    </Suspense>
-  );
+  return <Suspense><GenerateForm /></Suspense>;
 }

@@ -64,60 +64,77 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-        <Link href="/" className="text-xl font-bold">Meme<span className="text-purple-400">AI</span></Link>
+    <div className="min-h-screen bg-[#EEEAE2]">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-3 border-b-2 border-[#1A1A1A] bg-[#EEEAE2]">
+        <Link href="/" className="font-black text-xl tracking-tight">MEME<span className="text-[#D42B2B]">AI</span></Link>
         <div className="flex items-center gap-4">
-          <Link href="/my-memes" className="text-gray-400 hover:text-white text-sm">My Memes</Link>
+          <Link href="/my-memes" className="text-xs font-bold tracking-widest uppercase text-[#7A7060] hover:text-[#1A1A1A]">My Memes</Link>
           <button onClick={handleUpgrade} disabled={upgrading}
-            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors">
-            {upgrading ? "..." : "⚡ Upgrade to Pro"}
+            className="border-2 border-[#D42B2B] text-[#D42B2B] px-4 py-1.5 text-[10px] font-black tracking-widest uppercase hover:bg-[#D42B2B] hover:text-white transition-colors disabled:opacity-50">
+            {upgrading ? "LOADING..." : "UPGRADE TO PRO"}
           </button>
-          <button onClick={signOut} className="text-gray-500 hover:text-white text-sm">Sign out</button>
+          <button onClick={signOut}
+            className="text-[10px] font-bold tracking-widest uppercase text-[#7A7060] hover:text-[#1A1A1A]">
+            SIGN OUT
+          </button>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-8 py-8">
-        <h1 className="text-2xl font-bold mb-6">Browse Memes</h1>
-
-        <div className="flex gap-3 mb-6">
-          <div className="flex gap-2">
-            <button onClick={() => { setTab("trending"); fetchTrending(); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "trending" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}>
-              🔥 Trending
-            </button>
-            <button onClick={() => setTab("search")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "search" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}>
-              Search
-            </button>
+      <div className="p-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="font-black text-2xl tracking-tight uppercase">MEME LIBRARY</h1>
+            <p className="text-xs font-bold tracking-widest text-[#7A7060] uppercase mt-0.5">Pick a meme to get started</p>
           </div>
+          <div className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#7A7060]">
+            POWERED BY GIPHY
+          </div>
+        </div>
+
+        {/* Tabs + Search */}
+        <div className="flex gap-3 mb-6 items-center">
+          <button onClick={() => { setTab("trending"); fetchTrending(); }}
+            className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase border-2 transition-colors ${tab === "trending" ? "bg-[#1A1A1A] text-white border-[#1A1A1A]" : "bg-transparent text-[#7A7060] border-[#C5C0B8] hover:border-[#1A1A1A] hover:text-[#1A1A1A]"}`}>
+            TRENDING
+          </button>
+          <button onClick={() => setTab("search")}
+            className={`px-4 py-2 text-[10px] font-black tracking-widest uppercase border-2 transition-colors ${tab === "search" ? "bg-[#1A1A1A] text-white border-[#1A1A1A]" : "bg-transparent text-[#7A7060] border-[#C5C0B8] hover:border-[#1A1A1A] hover:text-[#1A1A1A]"}`}>
+            SEARCH
+          </button>
           {tab === "search" && (
             <form onSubmit={e => { e.preventDefault(); fetchSearch(search); }} className="flex gap-2 flex-1">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search memes... e.g. Will Ferrell, celebration"
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-              <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Search</button>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search memes... e.g. celebration, Will Ferrell"
+                className="flex-1 bg-[#F5F1E8] border-2 border-[#1A1A1A] px-4 py-2 text-sm font-bold text-[#1A1A1A] placeholder-[#7A7060] focus:outline-none" />
+              <button type="submit"
+                className="bg-[#1A1A1A] text-white px-5 py-2 text-[10px] font-black tracking-widest uppercase hover:bg-[#D42B2B] transition-colors">
+                GO →
+              </button>
             </form>
           )}
         </div>
 
+        {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array(12).fill(0).map((_, i) => (
-              <div key={i} className="bg-gray-800 rounded-xl aspect-video animate-pulse" />
+              <div key={i} className="border-2 border-[#C5C0B8] bg-[#F5F1E8] aspect-video animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {memes.map(meme => (
               <button key={meme.id} onClick={() => selectMeme(meme)}
-                className="group relative bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-purple-500 transition-colors">
+                className="group relative border-2 border-[#1A1A1A] bg-[#F5F1E8] overflow-hidden hover:border-[#D42B2B] transition-colors text-left">
                 <img src={meme.images.fixed_height.url} alt={meme.title}
                   className="w-full h-40 object-cover" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="bg-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-lg">Use this meme</span>
+                  <span className="bg-[#D42B2B] text-white text-[10px] font-black px-4 py-2 tracking-widest uppercase">USE THIS →</span>
                 </div>
-                <div className="p-2">
-                  <p className="text-xs text-gray-400 truncate">{meme.title}</p>
+                <div className="px-2 py-1.5 border-t-2 border-[#1A1A1A] bg-[#1A1A1A]">
+                  <p className="text-[10px] font-bold text-white tracking-wider truncate uppercase">{meme.title || "UNTITLED"}</p>
                 </div>
               </button>
             ))}
