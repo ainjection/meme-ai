@@ -38,6 +38,7 @@ function GenerateForm() {
   const params = useSearchParams();
   const router = useRouter();
   const memeUrl = params.get("meme") ? decodeURIComponent(params.get("meme")!) : "";
+  const memeStill = params.get("still") ? decodeURIComponent(params.get("still")!) : memeUrl;
   const memeTitle = params.get("title") ? decodeURIComponent(params.get("title")!) : "";
   const isVideo = memeUrl.includes(".gif") || memeUrl.includes("giphy");
 
@@ -73,7 +74,7 @@ function GenerateForm() {
     const genRes = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memeUrl, userPhotoUrl: photoUrl, swapType, memeTitle }),
+      body: JSON.stringify({ memeUrl, memeStill, userPhotoUrl: photoUrl, swapType, memeTitle }),
     });
     if (!genRes.ok) { const e = await genRes.json(); setError(e.error || "Generation failed"); setStatus("error"); return; }
     const { generationId } = await genRes.json();

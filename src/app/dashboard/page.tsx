@@ -12,6 +12,7 @@ interface GiphyResult {
   images: {
     fixed_height: { url: string; width: string; height: string };
     original: { url: string };
+    original_still: { url: string };
   };
 }
 
@@ -59,8 +60,9 @@ export default function DashboardPage() {
 
   function selectMeme(meme: GiphyResult) {
     const url = encodeURIComponent(meme.images.original.url);
+    const still = encodeURIComponent(meme.images.original_still?.url || meme.images.fixed_height.url);
     const title = encodeURIComponent(meme.title);
-    router.push(`/generate?meme=${url}&title=${title}`);
+    router.push(`/generate?meme=${url}&still=${still}&title=${title}`);
   }
 
   return (

@@ -14,7 +14,7 @@ async function getLatestVersion(owner: string, name: string): Promise<string | n
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { memeUrl, userPhotoUrl, swapType } = body
+  const { memeUrl, memeStill, userPhotoUrl, swapType } = body
 
   if (!memeUrl || !userPhotoUrl || !swapType) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         version: "278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
         input: {
           swap_image: userPhotoUrl,
-          input_image: memeUrl,
+          input_image: memeStill || memeUrl,
         },
       })
     } else {
