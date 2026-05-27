@@ -33,13 +33,12 @@ export async function POST(req: NextRequest) {
       })
     } else {
       prediction = await replicate.predictions.create({
-        model: "wavespeedai/wan-2.1-i2v-480p",
+        model: "wan-video/wan-2.2-animate-replace",
         input: {
-          image: userPhotoUrl,
-          prompt: 'person performing action, natural movement, maintain scene and background',
-          num_frames: 81,
-          sample_steps: 30,
-          frames_per_second: 16,
+          video: memeUrl,
+          character_image: userPhotoUrl,
+          go_fast: true,
+          frames_per_second: 24,
         },
       })
     }
