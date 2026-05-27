@@ -60,11 +60,14 @@ function GenerateForm() {
     if (!photo || !memeUrl) return;
     setStatus("uploading");
     setError("");
-    const form = new FormData();
-    form.append("file", photo);
-    const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
-    if (!uploadRes.ok) { setError("Photo upload failed"); setStatus("error"); return; }
-    const { url: photoUrl } = await uploadRes.json();
+
+    // Convert photo to base64 data URI — no storage service needed
+    const photoUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(photo);
+    });
 
     setStatus("generating");
     const genRes = await fetch("/api/generate", {
