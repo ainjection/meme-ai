@@ -20,8 +20,17 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"trending" | "search">("trending");
+  const [upgrading, setUpgrading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    const res = await fetch("/api/checkout", { method: "POST" });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+    else setUpgrading(false);
+  }
 
   async function fetchTrending() {
     setLoading(true);
@@ -60,6 +69,10 @@ export default function DashboardPage() {
         <Link href="/" className="text-xl font-bold">Meme<span className="text-purple-400">AI</span></Link>
         <div className="flex items-center gap-4">
           <Link href="/my-memes" className="text-gray-400 hover:text-white text-sm">My Memes</Link>
+          <button onClick={handleUpgrade} disabled={upgrading}
+            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors">
+            {upgrading ? "..." : "⚡ Upgrade to Pro"}
+          </button>
           <button onClick={signOut} className="text-gray-500 hover:text-white text-sm">Sign out</button>
         </div>
       </nav>
