@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         version: "278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
         input: {
           swap_image: userPhotoUrl,
-          target_image: memeUrl,
+          input_image: memeUrl,
         },
       })
     } else {
