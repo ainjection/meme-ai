@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Insert pending generation record
   const { data: generation, error: insertError } = await supabase
     .from('generations')
     .insert({
@@ -35,29 +34,28 @@ export async function POST(req: NextRequest) {
     let prediction
 
     if (swapType === 'face') {
-      // Image face swap
+      // Image face swap — codeplugtech/face-swap on Replicate
       prediction = await replicate.predictions.create({
-        version: 'cjwbw/codeformer:07a8f5a1f3b6e8a1c5d9c2e4f7a9b3e5d1c7f9a2b4e6d8f0a2c4e6d8f0a2c4',
-        // codeplugtech/face-swap
         model: 'codeplugtech/face-swap',
         input: {
-          source_image: userPhotoUrl,
+          swap_image: userPhotoUrl,
           target_image: memeUrl,
         },
       })
     } else {
-      // Video full-body swap via wan-2.2
+      // Video full-body swap — wan-2.2 animate-anyone
       prediction = await replicate.predictions.create({
         model: 'wavespeedai/wan-2.1-i2v-480p',
         input: {
           image: userPhotoUrl,
-          prompt: 'person in scene, full body replacement, maintain background and setting',
-          target_video: memeUrl,
+          prompt: 'person performing action, natural movement, maintain scene and background',
+          num_frames: 81,
+          sample_steps: 30,
+          frames_per_second: 16,
         },
       })
     }
 
-    // Save prediction ID
     await supabase
       .from('generations')
       .update({ replicate_prediction_id: prediction.id })
